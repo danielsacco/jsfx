@@ -1,0 +1,63 @@
+// Sallen & Key 2nd order low pass as described in DAFX - Digital Audio Effects (Udo Zölzer) page 34
+desc:Sallen Key 2nd order low pass (dsacco)
+
+slider1:damping=2<1,50,0.1>Damping Factor
+slider2:freq=10000<200,40000,0.1>Cutoff Frequency
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function calculate_factors()(
+  C = 1/tan($pi*freq/srate);
+  b0 = 1/(1 + 2*damping*C + C*C);
+  b1 = 2 * b0;
+  b2 = b0;
+  a1 = 2*b0*(1-C*C);
+  a2 = b0*(1 - 2*damping*C + C*C);
+);
+
+function limit_cutoff() local(limit)(
+  limit = srate/2 - 100;
+  freq = freq > limit ? limit : freq;
+);
+
+//freq = 3000;
+limit_cutoff();
+calculate_factors();
+
+@slider
+limit_cutoff();
+calculate_factors();
+
+@block
+
+
+@sample
+
+// Left
+// shift previous input/output
+left_out_2 = left_out_1;
+left_out_1 = left_out_0;
+left_in_2 = left_in_1;
+left_in_1 = left_in_0;
+
+// calculate new output
+left_in_0 = spl0;
+left_out_0 = b0*left_in_0 + b1*left_in_1 + b2*left_in_2 - a1*left_out_1 - a2*left_out_2;
+spl0 = left_out_0;
+
+// Right
+// shift previous input/output
+right_out_2 = right_out_1;
+right_out_1 = right_out_0;
+right_in_2 = right_in_1;
+right_in_1 = right_in_0;
+
+// calculate new output
+right_in_0 = spl1;
+right_out_0 = b0*right_in_0 + b1*right_in_1 + b2*right_in_2 - a1*right_out_1 - a2*right_out_2;
+spl1 = right_out_0;
+

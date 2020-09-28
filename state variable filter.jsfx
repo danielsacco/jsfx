@@ -1,0 +1,64 @@
+// State variable filter as described in DAFX - Digital Audio Effects (Udo Zölzer) page 35
+desc:State variable filter (dsacco)
+
+slider1:damping=0.25<0.15,1,0.01>Damping Factor
+slider2:freq=10000<50,20000,0.1>Cutoff Frequency
+slider3:mode=1<0,2,1{Low Pass,High Pass,Band Pass,Band Reject}>Filter type
+slider4:mix=100<0,100,0.1>Mix%: 0:Dry - 100:Wet
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+
+function calculate_factors()(
+  F1 = 2*sin($pi*freq/srate);
+  Q1 = 2*damping;
+  // Limit Q1 for stability
+  Q1 > 2 - F1 ? (Q1 = 2 - F1; damping = Q1/2);
+  
+  dry = 1 - mix/100;
+  wet = mix/100;
+);
+
+function init_state()(
+  this.low = 0;
+  this.high = 0;
+  this.bp = 0;
+);
+
+function calc_state(sample)(
+  this.high = sample - this.low - Q1 * this.bp;
+  this.bp = F1 * this.high + this.bp;
+  this.low = F1 * this.bp + this.low;
+  mode == 0 ? this.low : mode == 1 ? this.high : mode == 2 ? this.bp : sample - this.bp;
+);
+
+
+function limit_cutoff() local(limit)(
+  limit = srate/2 - 100;
+  freq = freq > limit ? limit : freq;
+);
+
+limit_cutoff();
+calculate_factors();
+
+left.init_state();
+right.init_state(); 
+
+@slider
+limit_cutoff();
+calculate_factors();
+
+@block
+
+
+@sample
+
+spl0 = spl0 * dry + left.calc_state(spl0) * wet;
+spl1 = spl1 * dry + right.calc_state(spl1) * wet;
+
+
+

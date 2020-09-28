@@ -1,0 +1,52 @@
+// Parametric second order filter as described in DAFX - Digital Audio Effects (Udo Zölzer) page 38
+desc:Second order filter (dsacco)
+desc:Parametric 2nd order BP/BR filter
+
+slider1:freq=2000<20,20000,0.1>Cutoff Frequency
+slider2:bw=0.5<0.005,2,0.0001>Bandwidth
+slider3:mode=1<0,1,1{Band Pass,Band Reject}>Filter type
+slider4:mix=100<0,100,0.1>Mix%: 0:Dry - 100:Wet
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+
+function calculate_factors() local(temp)(
+  fb = bw * freq;
+  temp = tan($pi*fb/srate);
+  c = (temp-1)/(temp+1);        // bw control
+  d = - cos(2*$pi*freq/srate);  // cut-off frequency control
+  e = d*(1-c);
+  dry = 1 - mix/100;
+  wet = mix/100;
+);
+
+function get_out(sample)(
+  this.out = -c * sample + e * this.sample_1 + this.sample_2
+             -e * this.out_1 + c * this.out_2;
+  // shift state
+  this.sample_2 = this.sample_1;
+  this.sample_1 = sample;
+  this.out_2 = this.out_1;
+  this.out_1 = this.out;
+  (mode == 0 ? sample - this.out : sample + this.out)/2;
+);
+
+calculate_factors();
+
+@slider
+calculate_factors();
+
+@block
+
+
+@sample
+
+spl0 = spl0 * dry + left.get_out(spl0) * wet;
+spl1 = spl1 * dry + right.get_out(spl1) * wet;
+
+
+

@@ -1,0 +1,45 @@
+// Parametric first order filter as described in DAFX - Digital Audio Effects (Udo Zölzer) page 38
+desc:First order filter (dsacco)
+desc:Parametric 1st order LP/HP filter
+
+slider1:freq=2000<20,20000,0.1>Cutoff Frequency
+slider2:mode=1<0,1,1{Low Pass,High Pass}>Filter type
+slider3:mix=100<0,100,0.1>Mix%: 0:Dry - 100:Wet
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+
+function calculate_factors() local(temp)(
+  temp = tan($pi*freq/srate);
+  c = (temp-1)/(temp+1);
+  dry = 1 - mix/100;
+  wet = mix/100;
+);
+
+function get_out(sample)(
+  this.out = c * sample + this.previous_sample - c * this.previous_out;
+  this.previous_sample = sample;
+  this.previous_out = this.out;
+  (mode == 0 ? sample + this.out : sample - this.out)/2;
+);
+
+
+calculate_factors();
+
+@slider
+calculate_factors();
+
+@block
+
+
+@sample
+
+spl0 = spl0 * dry + left.get_out(spl0) * wet;
+spl1 = spl1 * dry + right.get_out(spl1) * wet;
+
+
+

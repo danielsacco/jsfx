@@ -1,0 +1,16 @@
+desc:Flip channels Demo (dsacco)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+
+@block
+
+@sample
+// Exchange spl0 and spl1
+spl0 = spl1 - spl0;
+spl1 = spl1 - spl0;
+spl0 = spl0 + spl1;

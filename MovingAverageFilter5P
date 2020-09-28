@@ -1,0 +1,70 @@
+// Moving Average Filter as described The Scientist and Engineer's Guide to
+// Digital Signal Processing (Steven W. Smith) Chapter 15 - Moving Average Filters
+desc:Moving Average Filter Demo (dsacco)
+
+slider1:5<2,30,1>Averaging Points
+slider2:1<1,5,1>Pass Times
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+POINTS=slider1;
+
+function init_queue(queue_number)
+(
+  this.sum=0;
+  //this.queue_number = queue_number;
+  this.offset = queue_number * POINTS;
+  this.init=0;
+  loop(POINTS,
+    queues[this.offset + this.init] = 0;
+    this.init += 1;
+  );
+);
+
+function shift_queue(value)(
+  this.i=this.offset;
+  this.ret_value=queues[this.i]; 
+  loop(POINTS-1,
+    queues[this.i] = queues[this.i+1];
+    this.i += 1;
+  );
+  queues[this.i] = value;
+  this.ret_value;
+);
+
+function get_filtered_value(sample)(
+  this.first_pushed = this.shift_queue(sample);
+  this.sum += (sample - this.first_pushed);
+  this.sum/POINTS;
+);
+
+function reset()(
+  left.init_queue(0);
+  right.init_queue(1);
+);
+
+// Queues memory start
+queues = 0;
+reset();
+// Release memory above the 2 max queue size
+freembuf(2*30+1);
+
+@slider
+
+@block
+slider1 != POINTS ? (
+  POINTS = slider1;
+  reset();
+);
+pass_times = slider2;
+
+@sample
+
+loop(pass_times,
+  spl0 = left.get_filtered_value(spl0);
+  spl1 = right.get_filtered_value(spl1);
+);

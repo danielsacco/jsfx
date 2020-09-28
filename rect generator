@@ -1,0 +1,38 @@
+desc:Rectangular Wave Generator [dsacco]
+//tags: synth
+//author: dsacco
+
+out_pin:left output
+out_pin:right output
+
+slider1:gain_db=-6<-72,0,1>Gain (dB)
+slider2:freq=440<10,15000,1>Freq (Hz)
+slider3:ton_percentage=50<0.1,99.9,0.1>T. on (%)
+
+@init
+function dbToGain(db)(10^(db/20););
+function samplesPerPeriod(freq) (srate/freq;);
+
+gain = dbToGain(gain_db);
+spp = samplesPerPeriod(freq);
+n = 0;
+t_on = ton_percentage / 100;
+
+@slider
+gain = dbToGain(gain_db);
+spp = samplesPerPeriod(freq);
+n = 0;
+t_on = ton_percentage / 100;
+
+@sample
+n > spp ? n -= spp;
+pos = n / spp;
+
+on = pos <= t_on ? 1 : 0;
+out = on * gain;
+
+spl0 = out;
+spl1 = out;
+
+n += 1;
+

@@ -1,0 +1,23 @@
+desc:Volume demo
+
+slider1:gain_db=0<-30,12,1>Gain (dB)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+gain = 10^(gain_db/20);
+
+@slider
+new_gain = 10^(gain_db/20); 
+
+@block
+// Slowly move the gain along the whole block
+delta = (new_gain - gain)/samplesblock;
+
+@sample
+spl0 *= gain;
+spl1 *= gain;
+gain += delta;
