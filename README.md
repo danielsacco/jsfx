@@ -1,2 +1,2 @@
 # jsfx
-JSFX plugins for learning dsp (See https://www.reaper.fm/sdk/js/js.php)
+Basic JSFX plugins for learning dsp (See https://www.reaper.fm/sdk/js/js.php)
