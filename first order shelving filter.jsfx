@@ -1,0 +1,71 @@
+// Shelving filter as described in DAFX - Digital Audio Effects (Udo Zölzer) page 51
+desc:First Order Shelving LF/HF filter (dsacco)
+desc:First Order Shelving LF/HF filter
+
+slider1:freq=2000<20,20000,0.1>Cutoff Frequency
+slider2:gain=0<-12,12,0.1>Boost/Cut dB
+slider3:mode=1<0,1,1{Low Shelving,High Shelving}>Type
+slider4:mix=100<0,100,0.1>Mix%: 0:Dry - 100:Wet
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+
+function calculate_factors() local(temp)(
+  temp = tan($pi*freq/srate);
+  V0 = 10^(gain/20);
+  H0_2 = (V0 -1)/2;
+  aB = (temp-1)/(temp+1);
+  aC_low = (temp-V0)/(temp+V0);
+  aC_hi = (V0*temp-1)/(V0*temp+1);
+  dry = 1 - mix/100;
+  wet = mix/100;
+);
+
+function low_boost(sample)(
+  this.y1 = aB*sample + this.sample_1 - aB*this.y1;
+  this.out = H0_2*(sample+this.y1) + sample;
+);
+
+function hi_boost(sample)(
+  this.y1 = aB*sample + this.sample_1 - aB*this.y1;
+  this.out = H0_2*(sample-this.y1) + sample;
+);
+
+function low_cut(sample)(
+  this.y1 = aC_low*sample + this.sample_1 - aC_low*this.y1;
+  this.out = H0_2*(sample+this.y1) + sample;
+);
+
+function hi_cut(sample)(
+  this.y1 = aC_hi*sample + this.sample_1 - aC_hi*this.y1;
+  this.out = H0_2*(sample-this.y1) + sample;
+);
+
+function out(sample)(
+  // Shift previous values
+  this.sample_1 = sample;
+  this.out_1 = this.out;
+
+  gain > 0 ? (  // Boost
+    mode == 0 ? this.low_boost(sample) : this.hi_boost(sample);
+  ) : ( // Cut
+    mode == 0 ? this.low_cut(sample) : this.hi_cut(sample);
+  );
+);
+
+calculate_factors();
+
+@slider
+calculate_factors();
+
+@block
+
+
+@sample
+spl0 = spl0 * dry + left.out(spl0) * wet;
+spl1 = spl1 * dry + right.out(spl1) * wet;
+
