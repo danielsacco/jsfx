@@ -1,0 +1,39 @@
+// Overdrive as described in DAFX - Digital Audio Effects (Udo Zölzer - 2nd Edition) page 125
+desc:Overdrive (dsacco)
+
+slider1:pre_gain_db=0<-12,12,0.1>Pre Gain dB
+slider2:out_gain_db==0<-6,6,0.1>Out Gain dB
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function calculate_gain()(
+  pre_gain = 10^(pre_gain_db/20);
+  out_gain = 10^(out_gain_db/20);
+);
+th = 1/3;
+
+calculate_gain();
+
+@slider
+calculate_gain();
+
+
+@block
+
+
+@sample
+
+function overdrive(sample)(
+  sample_sign = sign(sample);
+  abs_value = abs(sample * pre_gain);
+  abs_out = abs_value <= th ? 2*abs_value : 1-((2-3*abs_value)^2)/3;
+  sample_sign * out_gain * min(abs_out,1);
+);
+
+spl0 = overdrive(spl0);
+spl1 = overdrive(spl1);
+

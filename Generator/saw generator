@@ -1,0 +1,38 @@
+desc:Saw Wave Generator [dsacco]
+//tags: synth
+//author: dsacco
+
+out_pin:left output
+out_pin:right output
+
+slider1:saw_gain_db=-6<-72,0,1>Saw Gain (dB)
+slider2:saw_freq=440<10,15000,1>Saw Freq (Hz)
+
+@init
+function dbToGain(db)(10^(db/20););
+function samplesPerPeriod(freq) (srate/saw_freq;);
+
+saw_gain = dbToGain(saw_gain_db);
+spp = samplesPerPeriod(saw_freq);
+n = 0;
+offset = 0;
+
+@slider
+saw_gain = dbToGain(saw_gain_db);
+spp = samplesPerPeriod(saw_freq);
+n = 0;
+offset = 0;
+
+@sample
+htotal = offset + n/spp;
+htotal > 1 ? (offset -= htotal; htotal -=1;);
+out = saw_gain * (htotal - 0.5);
+
+// Hard limit
+abs(out) > 0.5 ? out = sign(out) * 0.5;
+
+spl0 = out;
+spl1 = out;
+
+n += 1;
+

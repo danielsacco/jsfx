@@ -1,0 +1,40 @@
+desc:Sin Generator [dsacco]
+//tags: synth
+//author: dsacco
+
+out_pin:left output
+out_pin:right output
+
+slider1:sin_gain_db=-6<-72,0,1>Sin Gain (dB)
+slider2:sin_freq=440<10,15000,1>Sin Freq (Hz)
+
+@init
+function dbToGain(db)(10^(db/20););
+function radianFactor(freq_sin) (2 * $pi * freq_sin / srate;);
+
+pi2 = 2*$pi;
+
+sin_n = 0;
+
+sin_gain = dbToGain(sin_gain_db);
+sin_factor = radianFactor(sin_freq);
+sin_samples_per_cicle = srate/sin_freq;
+
+
+@slider
+sin_gain = dbToGain(sin_gain_db);
+sin_factor = radianFactor(sin_freq);
+// Just for debbuging information.
+sin_samples_per_cicle = srate/sin_freq;
+
+
+@sample
+radians = sin_n * sin_factor;
+height = sin(radians);
+out = sin_gain * height;
+
+spl0 = out;
+spl1 = out;
+
+sin_n += 1;
+
