@@ -1,0 +1,36 @@
+// Distortion as described in DAFX - Digital Audio Effects (Udo Zölzer - 2nd Edition) page 127
+desc:Distortion (dsacco)
+
+slider1:pre_gain_db=0<-12,18,0.1>Pre Gain dB
+slider2:out_gain_db==0<-6,6,0.1>Out Gain dB
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function calculate_gain()(
+  pre_gain = 10^(pre_gain_db/20);
+  out_gain = 10^(out_gain_db/20);
+);
+
+calculate_gain();
+
+@slider
+calculate_gain();
+
+
+@block
+
+
+@sample
+
+function distort(sample)(
+  abs_value = abs(sample * pre_gain);
+  sign(sample) * out_gain * (1 - exp(-abs_value));
+);
+
+spl0 = distort(spl0);
+spl1 = distort(spl1);
+
