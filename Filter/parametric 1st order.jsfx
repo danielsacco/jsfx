@@ -4,7 +4,6 @@ desc:Parametric 1st order LP/HP filter
 
 slider1:freq=2000<20,20000,0.1>Cutoff Frequency
 slider2:mode=1<0,1,1{Low Pass,High Pass}>Filter type
-slider3:mix=100<0,100,0.1>Mix%: 0:Dry - 100:Wet
 
 in_pin:left input
 in_pin:right input
@@ -16,8 +15,6 @@ out_pin:right output
 function calculate_factors() local(temp)(
   temp = tan($pi*freq/srate);
   c = (temp-1)/(temp+1);
-  dry = 1 - mix/100;
-  wet = mix/100;
 );
 
 function get_out(sample)(
@@ -37,9 +34,8 @@ calculate_factors();
 
 
 @sample
-
-spl0 = spl0 * dry + left.get_out(spl0) * wet;
-spl1 = spl1 * dry + right.get_out(spl1) * wet;
+spl0 = left.get_out(spl0);
+spl1 = right.get_out(spl1);
 
 
 
