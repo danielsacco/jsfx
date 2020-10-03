@@ -1,0 +1,64 @@
+// Simple rudimentary delay: out(n) = in(n) + gain * in(n-M)
+desc:Delay in samples (dsacco)
+
+slider1:delay_samples=10<10,10000>Delay in samples
+slider2:delay_gain_db=0<-24,0,0.1>Delay Gain dB
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function calculate_gain()(
+  delay_gain = 10^(delay_gain_db/20);
+);
+
+function init_buffer(index, size)(
+  this.size = size;
+  this.offset = index * size;
+  memset(this.offset,0,this.size);
+  
+  // enqueue pointer
+  this.in_p = delay_samples;
+  // dequeue pointer
+  this.out_p = 0;
+);
+
+function enqueue(sample)(
+  // increase pointer for next sample or reset if at the end of the buffer
+  this.in_p >= this.size ? this.in_p = 0 : this.in_p += 1;
+  buffer[this.offset+this.in_p] = sample;
+);
+
+function dequeue()(
+  // increase pointer for next sample or reset if at the end of the buffer
+  this.out_p >= this.size ? this.out_p = 0 : this.out_p += 1;
+  buffer[this.offset+this.out_p];
+);
+
+buffer = 0;
+// Each buffer zone should hold "delay_samples" max value
+MAX_VALUE = 10000;
+left.init_buffer(0, MAX_VALUE);
+right.init_buffer(1, MAX_VALUE);
+freembuf(MAX_VALUE*2+1);
+
+calculate_gain();
+
+@slider
+left.init_buffer(0, MAX_VALUE);
+right.init_buffer(1, MAX_VALUE);
+calculate_gain();
+
+@block
+
+@sample
+left.enqueue(spl0);
+right.enqueue(spl1);
+spl0 = spl0 + left.dequeue() * delay_gain;
+spl1 = spl1 + right.dequeue() * delay_gain;
+
+
+
+
