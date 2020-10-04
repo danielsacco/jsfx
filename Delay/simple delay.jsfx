@@ -1,8 +1,18 @@
-// Simple rudimentary delay: out(n) = in(n) + gain * in(n-M)
+// Simple rudimentary delay
+// Implements a circular queue using a buffer of size BUFFER_SIZE for each channel
+// Each sample is saved in its queue affected by the Delay Gain and added "N" samples later 
+// to the output.
+// Also a feedback is implemented by peeking the "N" previous saved sample, affect it 
+// by a feedback amount (always less than 1) and summing it to the current sample.
+// TODO: Set Delay in milliseconds
+// TODO: Allow set delay as a fraction of tempo
+// TODO: Reduce glitches on effect activation
 desc:Delay in samples (dsacco)
 
-slider1:delay_samples=10<10,10000>Delay in samples
-slider2:delay_gain_db=0<-24,0,0.1>Delay Gain dB
+slider1:1000<10,30000,1>Delay in samples
+slider2:-6<-24,0,0.1>Delay Gain dB
+slider3:suppress_direct=0<0,1,1{Only Delay,Original + Delay}>Mode
+slider4:fb=0.5<0,0.85,0.01>Feedback amount
 
 in_pin:left input
 in_pin:right input
@@ -14,50 +24,71 @@ function calculate_gain()(
   delay_gain = 10^(delay_gain_db/20);
 );
 
-function init_buffer(index, size)(
-  this.size = size;
-  this.offset = index * size;
-  memset(this.offset,0,this.size);
+function init_buffer(index)(
+  this.offset = index * BUFFER_SIZE;
+  memset(this.offset,0,BUFFER_SIZE);
   
   // enqueue pointer
-  this.in_p = delay_samples;
+  this.in_p = delay_samples-1;
   // dequeue pointer
   this.out_p = 0;
 );
 
+function peek()(
+  buffer[this.offset+this.out_p];
+);
+
 function enqueue(sample)(
   // increase pointer for next sample or reset if at the end of the buffer
-  this.in_p >= this.size ? this.in_p = 0 : this.in_p += 1;
-  buffer[this.offset+this.in_p] = sample;
+  (this.in_p += 1) >= BUFFER_SIZE ? this.in_p = 0;
+  // Set sample already affected by the delay gain
+  // Also add feedback reaffected by the delay gain
+  buffer[this.offset+this.in_p] = sample * delay_gain + (fb > 0 ? this.peek() * fb);
 );
 
 function dequeue()(
   // increase pointer for next sample or reset if at the end of the buffer
-  this.out_p >= this.size ? this.out_p = 0 : this.out_p += 1;
+  (this.out_p += 1) >= BUFFER_SIZE ? this.out_p = 0;
   buffer[this.offset+this.out_p];
 );
 
 buffer = 0;
 // Each buffer zone should hold "delay_samples" max value
-MAX_VALUE = 10000;
-left.init_buffer(0, MAX_VALUE);
-right.init_buffer(1, MAX_VALUE);
+BUFFER_SIZE = 30000;
+left.init_buffer(0);
+right.init_buffer(1);
 freembuf(MAX_VALUE*2+1);
+
+delay_samples = slider1;
+delay_gain_db = slider2;
+
+// DEBUG
+delay_time = delay_samples/srate;
+
 
 calculate_gain();
 
 @slider
-left.init_buffer(0, MAX_VALUE);
-right.init_buffer(1, MAX_VALUE);
-calculate_gain();
+slider1 != delay_samples ? (
+  left.init_buffer(0);
+  right.init_buffer(1);
+  delay_samples = slider1;
+  // DEBUG
+  delay_time = delay_samples/srate;
+);
+
+slider2 != delay_gain_db ? (
+  delay_gain_db = slider2;
+  calculate_gain();
+);
 
 @block
 
 @sample
 left.enqueue(spl0);
 right.enqueue(spl1);
-spl0 = spl0 + left.dequeue() * delay_gain;
-spl1 = spl1 + right.dequeue() * delay_gain;
+spl0 = left.dequeue() + suppress_direct * spl0;
+spl1 = right.dequeue() + suppress_direct * spl1;
 
 
 
