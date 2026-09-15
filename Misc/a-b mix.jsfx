@@ -1,0 +1,28 @@
+desc: A/B Mix 
+tags: tools
+slider1:balance=0<-1,1,0.01>A<--- -- ->B
+
+in_pin:A Left
+in_pin:A Right
+in_pin:B Left
+in_pin:B Right
+out_pin:Mix left
+out_pin:Mix right
+
+@init
+mix = balance;
+
+@slider
+new_mix = balance; 
+
+@block
+// Slowly move the mix along the whole block
+delta = (new_mix - mix)/samplesblock;
+
+@sample
+gain_a = -0.5 * mix + 0.5;
+gain_b = 1 - gain_a;
+
+spl0 = spl0 * gain_a + spl2 * gain_b;
+spl1 = spl1 * gain_a + spl3 * gain_b;
+mix += delta;
